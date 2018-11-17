@@ -1,3 +1,15 @@
+//credit to Craig S. Anderson on Stack Overflow
+//https://stackoverflow.com/questions/14553435/how-to-listen-for-mouse-events-in-linux
+//compile with:
+//gcc mouse.c -o mouse -lX11
+
+//See XLib manual: https://tronche.com/gui/x/xlib/
+
+//must have xlib dev tools installed
+//see:https://ubuntuforums.org/showthread.php?t=791474
+//probably something like:
+//sudo apt-get install libx11-dev
+
 #include <stdio.h>
 #include <X11/Xlib.h>
 
