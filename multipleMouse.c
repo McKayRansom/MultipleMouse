@@ -84,6 +84,8 @@ void moveMouseStruct(Display* display, Window window, struct mouse mouse) {
   moveMouse(display, window, mouse.x, mouse.y);
 }
 
+
+
 int main(int argc, char ** argv) {
   Display *display;
   Window window;
@@ -226,10 +228,29 @@ int main(int argc, char ** argv) {
      //Button Press event
      } else if (event.type == mouseEventTypes[1]) {
        printf("button pressed!\n");
-
-       //pass event through to other programs!
-       XAllowEvents(display, ReplayPointer, event.xbutton.time);
-       XFlush(display);
+       int passThrough = 1;
+       for (int i = 0; i < devices.num_mouseDevices; i++) {
+         if (((XDeviceMotionEvent*)&event)->deviceid == devices.mouseDevices[i]->device_id) {
+           //update mouse position
+           if (currentMouse != i) {
+             printf("Mouse Switch!\n");
+             currentMouse = i;
+             //force the mouse to move
+             moveMouseStruct(display, window, mouseStructs[i]);
+             //throw out event caused by moving the mouse
+             disregardNextMove = 2;
+             //todo: copy struct
+             mainMouse = mouseStructs[i];
+             XPutBackEvent(display, &event); //let's deal with this later...
+             passThrough = 0; //don't pass the event through to other programs
+           }
+         }
+       }
+       if (passThrough) {
+         //pass event through to other programs!
+         XAllowEvents(display, ReplayPointer, event.xbutton.time);
+         XFlush(display);
+       }
      //Button Release Event
      } else if (event.type == mouseEventTypes[2]) {
        printf("button released!\n");
