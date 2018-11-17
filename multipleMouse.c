@@ -98,7 +98,9 @@ int main(int argc, char ** argv) {
   devices.mouseDevices[0] = XOpenDevice(display, 15);
   //touchPad
   devices.mouseDevices[1] = XOpenDevice(display, 13);
-  devices.num_mouseDevices = 2;
+  //2nd usb mouse
+  devices.mouseDevices[2] = XOpenDevice(display, 16);
+  devices.num_mouseDevices = 3;
 
   devices.keyboardDevices[0] = XOpenDevice(display, 12);
   devices.num_keyboardDevices = 1;
