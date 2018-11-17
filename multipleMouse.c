@@ -30,34 +30,41 @@ struct InputDevices findInputDevices(Display *display) {
   XDeviceInfo *info;
   int num_devices;
   struct InputDevices devices;
+  devices.num_mouseDevices = 0;
+  devices.num_keyboardDevices = 0;
 
   //get a list of all connected devices from os I guess
   info = XListInputDevices(display, &num_devices);
   //for each device
+  //TEMP: start at address 6 to skip all of the dump virtual devices!
   for (int i = 0; i < num_devices; i++, info++) {
-    //if it has a type (basically a safety check)
-    if (info->type != None) {
-      //get it's type (either KEYBOARD, TOUCHPAD, TOUCHSCREEN, or MOUSE)
-      char *type = XGetAtomName(display, info->type);
-      //if it is a mouse or touchpad
-      if (strcmp(type, "MOUSE") || strcmp(type, "TOUCHPAD")) {
-        //make sure we still have room for it
-        if (devices.num_mouseDevices < maxDevices) {
-          //get device and add device to array
-          devices.mouseDevices[devices.num_mouseDevices++] =
-                              XOpenDevice(display, info->id);
-        }
+    char *type = "unknown! ";
+    if (info->type != None)
+    type = XGetAtomName(display, info->type);
+    XID class = info->inputclassinfo->class;
+    //if it is a mouse or touchpad
+    if ((info->use == IsXExtensionPointer) && !(strcmp(type, "MOUSE") && strcmp(type, "TOUCHPAD"))) {
+      //make sure we still have room for it
+      if (devices.num_mouseDevices < maxDevices) {
+        //get device and add device to array
+        devices.mouseDevices[devices.num_mouseDevices++] =
+                            XOpenDevice(display, info->id);
       }
-      //if it is a keyboard
-      else if (strcmp(type, "KEYBOARD")) {
-        if (devices.num_keyboardDevices < maxDevices) {
-          //get device and add device to array
-          devices.keyboardDevices[devices.num_keyboardDevices++] =
-                              XOpenDevice(display, info->id);
-        }
+
+      printf("found mouse %d : %s\n", devices.num_mouseDevices - 1, info->name);
+    }
+    //if it is a keyboard
+    else if ((info->use == IsXExtensionKeyboard) && !strcmp(type, "KEYBOARD")) {
+      if (devices.num_keyboardDevices < maxDevices) {
+        //get device and add device to array
+        devices.keyboardDevices[devices.num_keyboardDevices++] =
+                            XOpenDevice(display, info->id);
       }
+      printf("found keyboard %d : %s\n", devices.num_keyboardDevices - 1, info->name);
     }
   }
+  printf("found: %d mice and %d keyboards\n", devices.num_mouseDevices, devices.num_keyboardDevices);
+  return devices;
 }
 
 //move the mouse to a new location (in absolute coords)
@@ -91,19 +98,32 @@ int main(int argc, char ** argv) {
   //find all possible devices
   allDevices = findInputDevices(display);
   //ask user to select devices they actually want
-  // TODO: actually implement user device selection!
-  // devices = userFilterInputDevices(devices);
-  struct InputDevices devices;
-  //wireless
-  devices.mouseDevices[0] = XOpenDevice(display, 15);
-  //touchPad
-  devices.mouseDevices[1] = XOpenDevice(display, 13);
-  //2nd usb mouse
-  devices.mouseDevices[2] = XOpenDevice(display, 16);
-  devices.num_mouseDevices = 3;
 
-  devices.keyboardDevices[0] = XOpenDevice(display, 12);
-  devices.num_keyboardDevices = 1;
+  printf("please select mice:\n");
+  char inputString[30];
+  //MISLEADING: not actually id, just spot in list
+  int inputIDs[10];
+  int size_inputIDs = 0;
+  fgets(inputString, 30, stdin);
+  char* subString;
+  subString = strtok(inputString, " ,.-\n");
+  while (subString != NULL) {
+    inputIDs[size_inputIDs++] = atoi(subString);
+    subString = strtok(NULL, " ,.-");
+    printf("%d ", inputIDs[size_inputIDs - 1]);
+  }
+  printf("\n");
+  struct InputDevices devices;
+  //add all input devices
+  for (int i = 0; i < size_inputIDs; i++) {
+    devices.mouseDevices[i] = allDevices.mouseDevices[inputIDs[i]];
+    printf("selecting device: %d\n", i);
+  }
+  printf("selected: %d devices\n", size_inputIDs);
+  devices.num_mouseDevices = size_inputIDs;
+
+  // devices.keyboardDevices[0] = XOpenDevice(display, 12);
+  // devices.num_keyboardDevices = 1;
 
   struct mouse mouseStructs[10];
   //motion + press + release
