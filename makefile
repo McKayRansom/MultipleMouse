@@ -18,4 +18,4 @@ multipleMouse: $(OBJ)
 .PHONE: clean
 
 clean:
-		rm -f $(OBJ)/*.o keylogger multiMouse
+		rm -f $(OBJ)/*.o keylogger multipleMouse
