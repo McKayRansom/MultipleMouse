@@ -6,6 +6,10 @@
 //must have xlib dev tools installed
 //see:https://ubuntuforums.org/showthread.php?t=791474
 
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <X11/Xlib.h>
@@ -22,6 +26,34 @@ struct InputDevices {
   XDevice* keyboardDevices[maxDevices];
   int num_keyboardDevices;
 };
+
+//Captures key board inputs to exit non blocking
+int kbhit(void)
+{
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+ 
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+ 
+  ch = getchar();
+ 
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+ 
+  if(ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+ 
+  return 0;
+}
 
 //prints out all input devices
 //see xinput command line utility code
@@ -85,6 +117,14 @@ void moveMouseStruct(Display* display, Window window, struct mouse mouse) {
 }
 
 int main(int argc, char ** argv) {
+
+  //Welcome Message
+  printf("\n***Welcome to MultipleMouse!***\nBy\n==============\nMcKay Ransom,\nGlendyn King,\nAlan Mathias\n==============\n\n");
+  printf("This program allows multiple\nmouse intputs to one computer\n\n");
+
+
+  printf("please select input mice from the\nlist of detected devices:\n\n");
+
   Display *display;
   Window window;
 
@@ -97,8 +137,12 @@ int main(int argc, char ** argv) {
   struct InputDevices allDevices;
   //find all possible devices
   allDevices = findInputDevices(display);
-  //ask user to select devices they actually want
 
+
+
+
+
+  //ask user to select devices they actually want
   printf("please select mice:\n");
   char inputString[30];
   //MISLEADING: not actually id, just spot in list
@@ -185,7 +229,7 @@ int main(int argc, char ** argv) {
    int currentMouse = 0;
    int disregardNextMove = 0;
    moveMouse(display, window, 0, 0);
-   while(1) {
+   while(!kbhit()) {
      XNextEvent(display, &event);
      //all mouse event types are the same so we just check 1
 
@@ -243,5 +287,9 @@ int main(int argc, char ** argv) {
      }
    }
 
+
+printf("\n\n--==#######* GOOD BYE *#######==--\n\n");
+
+return 0;
 
 }
