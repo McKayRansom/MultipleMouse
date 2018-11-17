@@ -16,7 +16,7 @@
 #include <X11/extensions/XInput.h>
 #include <X11/extensions/XI.h>
 #include <X11/Xutil.h>
-
+#define debug 0
 #include "mouse.h"
 
 #define maxDevices 10
@@ -33,25 +33,25 @@ int kbhit(void)
   struct termios oldt, newt;
   int ch;
   int oldf;
- 
+
   tcgetattr(STDIN_FILENO, &oldt);
   newt = oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
   oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
   fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
- 
+
   ch = getchar();
- 
+
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   fcntl(STDIN_FILENO, F_SETFL, oldf);
- 
+
   if(ch != EOF)
   {
     ungetc(ch, stdin);
     return 1;
   }
- 
+
   return 0;
 }
 
@@ -163,6 +163,7 @@ int main(int argc, char ** argv) {
   //add all input devices
   for (int i = 0; i < size_inputIDs; i++) {
     devices.mouseDevices[i] = allDevices.mouseDevices[inputIDs[i]];
+    if (debug)
     printf("selecting device: %d\n", i);
   }
   printf("selected: %d devices\n", size_inputIDs);
@@ -256,12 +257,13 @@ int main(int argc, char ** argv) {
          if (((XDeviceMotionEvent*)&event)->deviceid == devices.mouseDevices[i]->device_id) {
            //update mouse position
            if (currentMouse != i) {
+             if (debug)
              printf("Mouse Switch!\n");
              currentMouse = i;
              //force the mouse to move
              moveMouseStruct(display, window, mouseStructs[i]);
              //throw out event caused by moving the mouse
-             disregardNextMove = 2;
+             // disregardNextMove = 2;
              //todo: copy struct
              mainMouse = mouseStructs[i];
            } else {
@@ -271,18 +273,20 @@ int main(int argc, char ** argv) {
        }
      //Button Press event
      } else if (event.type == mouseEventTypes[1]) {
+       if (debug)
        printf("button pressed!\n");
        int passThrough = 1;
        for (int i = 0; i < devices.num_mouseDevices; i++) {
          if (((XDeviceMotionEvent*)&event)->deviceid == devices.mouseDevices[i]->device_id) {
            //update mouse position
            if (currentMouse != i) {
+             if (debug)
              printf("Mouse Switch!\n");
              currentMouse = i;
              //force the mouse to move
              moveMouseStruct(display, window, mouseStructs[i]);
              //throw out event caused by moving the mouse
-             disregardNextMove = 2;
+             // disregardNextMove = 2;
              //todo: copy struct
              mainMouse = mouseStructs[i];
              XPutBackEvent(display, &event); //let's deal with this later...
@@ -297,6 +301,7 @@ int main(int argc, char ** argv) {
        }
      //Button Release Event
      } else if (event.type == mouseEventTypes[2]) {
+       if (debug)
        printf("button released!\n");
 
        //pass event through to other programs!
